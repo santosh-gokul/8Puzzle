@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<!-- saved from url=(0082)https://www.cs.princeton.edu/courses/archive/spr08/cos226/assignments/8puzzle.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>
+8-Puzzle Programming Assignment
+</title></head>
+
+<body>
+<h3>COS 226 Programming Assignment</h3>
+<h2>8 Puzzle</h2>
+
+<p>
+
+Write a program to solve the 8-puzzle problem
+(and its natural generalizations) using the 
+A* search algorithm.
+
+</p><p>
+<br>
+
+<b>
+The problem.
+</b>
+The <a href="http://en.wikipedia.org/wiki/Fifteen_puzzle">8-puzzle problem</a>
+is a puzzle popularized by Sam Loyd in the 1870s. It is 
+played on a 3-by-3 grid with 8 square blocks labeled 1 through 8 and a blank 
+square. Your goal is to rearrange the blocks so that they are in order. 
+You are permitted to slide blocks horizontally or vertically
+into the blank square. 
+The following 
+shows a sequence of legal moves from an initial board position (left)
+to the goal position (right).
+</p><pre><blockquote>
+    1  3        1     3        1  2  3        1  2  3        1  2  3
+ 4  2  5   =&gt;   4  2  5   =&gt;   4     5   =&gt;   4  5      =&gt;   4  5  6
+ 7  8  6        7  8  6        7  8  6        7  8  6        7  8 
+
+ initial                                                      goal</blockquote></pre>
+
+<p>
+<b>Best-first search.</b>
+We now describe a solution to the problem that illustrates a 
+general artificial intelligence methodology known as the
+<a href="http://en.wikipedia.org/wiki/A*_search_algorithm">A* search algorithm</a>.
+We define a <em>state</em> of the game to be the board position, the number
+of moves made to reach there, and the previous state.
+First, insert the initial state 
+(the initial board, 0 moves, and a null previous state) 
+into a priority queue. Then,
+delete from the priority queue the state with the minimum priority,
+and insert onto the priority queue all neighboring states
+(those that can be reached in one move).
+Repeat this procedure until the state dequeued is the goal state.
+The success of this approach
+hinges on the choice of <em>priority function</em>.
+
+</p><ul>
+
+<li><em>Hamming priority function.</em>
+A natural priority function for a given state is the number
+of blocks in the wrong position,
+plus the number of moves made so far to get to the state.
+Intutively, states with a small number of blocks in the wrong position
+are close to the goal state, and we prefer states that
+have been reached using a small number of moves.
+
+<p></p></li><li><em>Manhattan priority function.</em>
+A better priority function for a given state is the
+sum of the distances (sum of the vertical and horizontal distance)
+from the blocks to their goal positions,
+plus the number of moves made so far to get to the state.
+
+</li></ul>
+
+For example, the Hamming and Manhattan priorities of the state below
+are 5 and 10, respectively.
+
+<pre><blockquote>
+ 8  1  3        1  2  3     1  2  3  4  5  6  7  8    1  2  3  4  5  6  7  8
+ 4     2        4  5  6     ----------------------    ----------------------
+ 7  6  5        7  8        1  1  0  0  1  1  0  1    1  2  0  0  2  2  0  3
+
+ initial          goal           Hamming = 5              Manhattan = 10</blockquote></pre>
+
+
+<p>
+We make a key oberservation: to solve the puzzle from
+a given state on the priority queue, the total number of moves we
+need to make (including those already made) is at least its priority,
+using either the Hamming or Manhattan priority function.
+(For Hamming priority, this is true because each block out of place
+must move at least once to reach its goal position.
+For Manhattan priority, this is true because each block must move
+its Manhattan distance from its goal position.
+Note that we do not count the blank tile when computing the
+Hamming or Manhattan priorities.)
+
+</p><p>
+Consequently, as soon as we dequeue a state,
+we have not only discovered a sequence of moves from the
+initial board to the board associated with the state, but 
+one that makes the fewest number of moves. 
+(Challenge for the mathematically inclined: prove this fact.)
+
+</p><p><b>A useful optimization.</b>
+After implementing this procedure, you will notice one annoying
+feature: states corresponding to the same board position 
+are enqueued on the priority queue many times.
+To prevent unnecessary exploration of useless states,
+when considering the neighbors of a state, don't enqueue
+the neighbor if its board position is the same as the
+previous state.
+
+</p><pre><blockquote>
+ 8  1  3      8  1  3     8  1  3
+ 4     2      4  2        4     2
+ 7  6  5      7  6  5     7  6  5
+
+ previous      state      disallow</blockquote></pre>
+
+<p><b>Your task.</b>
+Write a program <tt>Solver.java</tt> that reads the initial board
+from standard input and prints to standard output a sequence of
+board positions that solves the puzzle in the fewest number of moves.
+Also print out the total number
+of moves and the <font color="green">total</font> number of states 
+<font color="green">ever</font> enqueued.
+The input will consist of the board dimension <em>N</em> followed by
+the <em>N</em>-by-<em>N</em>
+initial board position. The input format uses 0 to represent
+the blank square. As an example,
+
+</p><pre><blockquote><b>% more puzzle04.txt</b>
+3
+ 0  1  3
+ 4  2  5
+ 7  8  6
+
+% <b>java Solver &lt; puzzle04.txt</b>
+    1  3 
+ 4  2  5 
+ 7  8  6 
+
+ 1     3 
+ 4  2  5 
+ 7  8  6 
+
+ 1  2  3 
+ 4     5 
+ 7  8  6 
+
+ 1  2  3 
+ 4  5   
+ 7  8  6 
+
+ 1  2  3 
+ 4  5  6 
+ 7  8   
+
+Number of moves = 4
+Number of states enqueued = 11</blockquote></pre>
+
+Note that your program should work for arbitrary <em>N</em>-by-<em>N</em> boards
+(for any <em>N</em> greater than 1), even if it is too slow to solve them.
+
+
+
+<p><b>Detecting infeasible puzzles.</b>
+Not all initial board positions can lead to the goal state.
+Modify your program to detect and report such situations. 
+
+</p><pre><blockquote>% <b>more puzzle-impossible3x3.txt</b>
+3
+ 1  2  3
+ 4  5  6
+ 8  7  0
+
+% <b>java Solver &lt; puzzle3x3-impossible.txt</b>
+No solution possible</blockquote></pre>
+
+<em>Hint</em>: you may use the fact that board positions
+are divided into two equivalence classes wirth repsect to reachability:
+(i) those that lead to the goal position and (ii) those that
+lead to the goal position if we modify the initial board by
+swapping any pair of adjacent (non-blank) blocks.
+There are two ways to apply the hint:
+
+<ul>
+
+<li> Run the A* algorithm simultaneously on two puzzle instances - one with the
+initial board and one with the initial board modified by
+swapping a pair of adjacent (non-blank) blocks. Exactly one of
+the two will lead to the goal position.
+
+<p></p></li><li> Derive a mathematical formula that tells you whether a board is 
+solvable or not.
+
+</li></ul>
+
+
+
+<p><b>Deliverables.</b>
+Organize your program in an appropriate number of data types.
+At a minimum, you are required to implement the following APIs.
+Though, you are free to add additional methods or data types (such as <tt>State</tt>).
+
+</p><p>
+
+
+</p><blockquote><pre>public class Board {
+   public Board(int[][] tiles)        // construct a board from an N-by-N array of tiles
+   public int hamming()               // return number of blocks out of place
+   public int manhattan()             // return sum of Manhattan distances between blocks and goal
+   public boolean equals(Object y)    // does this board equal y
+   public Iterable&lt;Board&gt; neighbors() // return an Iterable of all neighboring board positions
+   public String toString()           // return a string representation of the board
+}
+
+
+public class Solver {
+   public Solver(Board initial)   // find a solution to the initial board
+   public boolean isSolvable()    // is the initial board solvable?
+   public int moves()             // return min number of moves to solve the initial board
+                                  <font color="green">// -1 if no such solution</font>
+   public void showSolution()     // display the solution (as described above)
+
+   //  read puzzle instance from stdin and print solution to stdout, as above
+   public static void main(String[] args)
+}
+</pre>
+</blockquote>
+
+<p>
+Submit <tt>Board.java</tt>, <tt>Solver.java</tt>
+<font color="green">(with the Manhattan priority)</font>
+and any other helper data types
+that you use besides those included in <tt>stdlib.jar</tt> and <tt>adt.jar</tt>.
+
+
+
+
+
+</p></body></html>
